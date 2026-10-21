@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+from pathlib import Path
 import sys
 from typing import List
 
@@ -22,21 +23,57 @@ def _validate_args(args: argparse.Namespace) -> None:
 def answer_with_rag(question: str) -> str:
     """RAGで質問に回答し、指定フォーマットのテキストを返します。
 
-    この関数を実装すると、`python -m day05.app --question ...` が動くようになります。
-
     要件（READMEの出力フォーマット）：
-    - 標準出力に次の形で出すための文字列を返す
-      1) `Answer:` 行
-      2) `Sources:` 行
-      3) `- <URL or ファイル名> (excerpt: "...")` を最低1件（ヒットなしなら `- (none)`）
-
-    実装ガイド：
-    - `day05/data/` 配下の `.txt` を読み込み、検索対象とする
-    - 最初は単純なキーワード検索でもOK（高品質でなくてよい）
-    - ヒットがない場合の挙動を必ず実装する
+    - Answer: 行に回答
+    - Sources: の下に参照元を列挙（ヒットなしなら `- (none)`）
     """
-    # TODO(TRAINEE): Implement retrieval from day05/data and return Answer/Sources formatted text.
-    raise NotImplementedError("Implement RAG")
+    data_dir = Path("day05/data")
+    if not data_dir.exists():
+        raise RuntimeError("Data directory 'day05/data' does not exist.")
+
+    hits = []
+    # 質問文をキーワード（単語単位）に分解
+    keywords = [kw.strip() for kw in question.split() if kw.strip()]
+    if not keywords:
+        keywords = [question]
+
+    # day05/data 配下の .txt ファイルを全件スキャン
+    for file_path in data_dir.glob("*.txt"):
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except Exception as e:
+            logging.warning(f"Failed to read {file_path}: {e}")
+            continue
+
+        paragraphs = [p.strip() for p in content.split("\n") if p.strip()]
+        for p in paragraphs:
+            # 質問のいずれかのキーワードが段落に含まれるか確認
+            if any(kw.lower() in p.lower() for kw in keywords):
+                hits.append((file_path.as_posix(), p))
+
+    # 【ヒットなし時】
+    if not hits:
+        return (
+            "Answer: 該当する根拠が見つかりませんでした。\n\n"
+            "Sources:\n"
+            "- (none)"
+        )
+
+    # 【ヒットあり時】
+    first_file, first_excerpt = hits[0]
+    short_answer = first_excerpt[:100] + "..." if len(first_excerpt) > 100 else first_excerpt
+
+    sources_lines = []
+    seen = set()
+    for file_name, excerpt in hits:
+        short_excerpt = excerpt[:50] + "..." if len(excerpt) > 50 else excerpt
+        line = f"- {file_name} (excerpt: \"{short_excerpt}\")"
+        if line not in seen:
+            seen.add(line)
+            sources_lines.append(line)
+
+    sources_str = "\n".join(sources_lines)
+    return f"Answer: {short_answer}\n\nSources:\n{sources_str}"
 
 
 def main(argv: List[str] | None = None) -> int:
