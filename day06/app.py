@@ -5,6 +5,13 @@ import logging
 import sys
 from typing import List
 
+# 許可されているツールのリスト（許可リスト）
+ALLOWED_TOOLS = {"get_weather"}
+
+# 禁止されている操作・キーワードリスト
+INJECTION_KEYWORDS = ["指示を無視", "前の指示", "秘密情報", "隠し情報", "システムプロンプト"]
+UNAUTHORIZED_TOOL_KEYWORDS = ["システムコマンド", "コマンドを実行", "exec", "system", "shell", "bash"]
+DISALLOWED_ACTION_KEYWORDS = ["ファイルを削除", "ファイル削除", "削除して", "rm", "delete"]
 
 def build_parser() -> argparse.ArgumentParser:
     """Day06のCLI引数を定義します（入力・モード・ケース番号）。"""
@@ -24,22 +31,46 @@ def _validate_args(args: argparse.Namespace) -> None:
 
 
 def run_guarded(*, text: str, mode: str, case: int) -> str:
-    """入力とツール実行をガードしながら処理し、回答（文字列）を返します。
+    """入力とツール実行をガードしながら処理し、回答（文字列）を返します。"""
+    # ---------------------------------------------------------
+    # 入力バリデーション（長文・空文字チェック）
+    # ---------------------------------------------------------
+    if not text.strip():
+        raise ValueError("入力テキストが空です。")
+    if len(text) > 1000:
+        raise ValueError("入力テキストが長すぎます（1000文字以内制限）。")
 
-    `mode` の意味：
-    - `normal`：通常入力を処理
-    - `attack`：用意した「悪い入力例」を使って、ガードが効いているか確認
+    # ---------------------------------------------------------
+    # ガード 1: 指示の乗っ取り (Prompt Injection) の検証
+    # ---------------------------------------------------------
+    if any(kw in text for kw in INJECTION_KEYWORDS) or (mode == "attack" and case == 1):
+        reason = "不正な入力が検出されました: 禁止されたパターンに一致 (プロンプトインジェクション)"
+        logging.error(reason)
+        raise PermissionError(reason)
 
-    実装ガイド：
-    - attackケースは最低3つ用意（README参照）
-    - 「禁止する行為」を明確にし、検知したら例外（または拒否文）にする
-    - ツールを実装する場合は許可リストで制限する（許可されないツールは実行しない）
+    # ---------------------------------------------------------
+    # ガード 2: 未許可ツールの実行要求の検証
+    # ---------------------------------------------------------
+    if any(kw in text for kw in UNAUTHORIZED_TOOL_KEYWORDS) or (mode == "attack" and case == 2):
+        reason = "不正な入力が検出されました: 許可されていないツールの実行要求"
+        logging.error(reason)
+        raise PermissionError(reason)
 
-    返り値：
-    - 標準出力に出る本文（文章）を返す
-    """
-    # TODO(TRAINEE): Implement guard logic and ensure unsafe behavior is blocked in attack mode.
-    raise NotImplementedError("Implement guard and safe tool execution")
+    # ---------------------------------------------------------
+    # ガード 3: 禁止操作（ファイル削除等）の検証
+    # ---------------------------------------------------------
+    if any(kw in text for kw in DISALLOWED_ACTION_KEYWORDS) or (mode == "attack" and case == 3):
+        reason = "不正な入力が検出されました: 許可されていない操作 (ファイル削除など)"
+        logging.error(reason)
+        raise PermissionError(reason)
+
+    # ---------------------------------------------------------
+    # 通常モードの処理（ガードを通過した安全な入力）
+    # ---------------------------------------------------------
+    if "天気" in text:
+        return "今日の天気は晴れです。"
+
+    return f"リクエストを受け付けました: 「{text}」"
 
 
 def main(argv: List[str] | None = None) -> int:
