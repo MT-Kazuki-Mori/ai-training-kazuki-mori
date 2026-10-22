@@ -100,6 +100,9 @@ python -m day07.app --text "〇〇を実装する手順を教えて"
 - ログの入れ方（どのノードで何が起きたか）
 
 ## 付録：設計メモ
+- LangGraphの基本構成：`StateGraph` に対し `add_node`, `add_edge`, `add_conditional_edges` を定義してワークフローを構築
+- State設計：`GraphState` に `input`, `mode`, `intent`, `output` などの情報を保持し、途中経過をログやノード間処理で追跡可能に設定
+- ルーティング条件：`route_by_intent` 関数により `intent` の値に応じて遷移先ノードを動的に判定
 
 ### 状態設計（state）
 
