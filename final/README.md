@@ -143,9 +143,9 @@ streamlit run final/chat_ui.py
 
 利用した公開データについて、以下を記載してください。
 
-- データ名
-- URL
-- ライセンス
+- データ名：Python (プログラミング言語) - Wikipedia
+- URL：https://ja.wikipedia.org/wiki/Python
+- ライセンス：CC BY-SA 4.0
 
 ---
 

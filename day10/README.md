@@ -86,7 +86,9 @@ streamlit run final/chat_ui.py
 
 ## セルフレビュー
 
-- `self-review-checklist.md` の該当項目：
+- `python -m day10.app --text "..."` で正常起動し結果が表示されることを確認
+- `--text` 未指定時にエラーメッセージと終了コード 2 が返ることを確認
+- `streamlit run final/chat_ui.py` でUIから呼び出しができることを確認
 
 最低限、以下を満たしていること。
 
@@ -96,5 +98,5 @@ streamlit run final/chat_ui.py
 
 ## 最終課題の進捗
 
-- できたこと：
-- 残っていること：
+- できたこと：`day10/app.py` から `final/agent.py` を呼び出す最小フロー構築、Streamlit UIでの動作確認
+- 残っていること：最終課題のエージェントロジック（LangGraph・Tool・RAG等）のさらなる磨き込み
